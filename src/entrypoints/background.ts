@@ -50,8 +50,9 @@ export default defineBackground(() => {
       }
       isOperating = true;
       curOperType = OperType.SYNC;
-      console.log('[download] 开始下载操作');
-      downloadBookmarks().then(() => {
+      const fileName = msg.fileName; // 可选的文件名参数
+      console.log('[download] 开始下载操作, fileName:', fileName);
+      downloadBookmarks(fileName).then(() => {
         curOperType = OperType.NONE;
         isOperating = false;
         browser.action.setBadgeText({ text: "" });
@@ -65,6 +66,17 @@ export default defineBackground(() => {
         sendResponse(false);
       });
 
+    }
+    if (msg.name === 'getAvailableFiles') {
+      // 获取 Gist 中所有可用的书签文件信息
+      console.log('[getAvailableFiles] 获取可用文件列表');
+      BookmarkService.getAllBookmarkFilesInfo().then(files => {
+        console.log('[getAvailableFiles] 文件列表:', files);
+        sendResponse(files);
+      }).catch(err => {
+        console.error('[getAvailableFiles] 获取失败:', err);
+        sendResponse([]);
+      });
     }
     if (msg.name === 'removeAll') {
       if (isOperating) {
@@ -195,17 +207,26 @@ export default defineBackground(() => {
       });
     }
   }
-  async function downloadBookmarks(targetBrowserType?: BrowserType) {
+  async function downloadBookmarks(fileNameOrBrowserType?: string | BrowserType) {
     try {
       let setting = await Setting.build()
       let gist: string | null = null;
+      let targetFileName: string | undefined;
 
-      // 如果指定了浏览器类型，下载对应的文件
-      if (targetBrowserType) {
-        const fileName = setting.getFileNameForBrowser(targetBrowserType);
-        gist = await BookmarkService.get(fileName);
+      // 判断参数类型
+      if (fileNameOrBrowserType) {
+        // 如果是浏览器类型枚举值，转换为文件名
+        if (Object.values(BrowserType).includes(fileNameOrBrowserType as BrowserType)) {
+          targetFileName = setting.getFileNameForBrowser(fileNameOrBrowserType as BrowserType);
+        } else {
+          // 否则直接作为文件名使用
+          targetFileName = fileNameOrBrowserType as string;
+        }
+        console.log('[downloadBookmarks] 下载指定文件:', targetFileName);
+        gist = await BookmarkService.get(targetFileName);
       } else {
         // 否则下载当前浏览器的文件
+        console.log('[downloadBookmarks] 下载当前浏览器文件:', setting.gistFileName);
         gist = await BookmarkService.get();
       }
 
@@ -231,8 +252,10 @@ export default defineBackground(() => {
         console.log('[downloadBookmarks] 书签创建完成');
         const count = getBookmarkCount(syncdata.bookmarks);
 
+        // 使用 syncdata 中的 browserType 或当前浏览器类型
+        const browserType = syncdata.browserType || setting.browserType;
+
         // 如果启用多浏览器模式，分别存储不同浏览器的书签数量
-        const browserType = targetBrowserType || setting.browserType;
         if (setting.enableMultiBrowser) {
           await browser.storage.local.set({
             [`remoteCount_${browserType}`]: count,
@@ -243,11 +266,12 @@ export default defineBackground(() => {
         }
 
         if (setting.enableNotify) {
+          const fileInfo = targetFileName ? ` (${targetFileName})` : ` (${browserType})`;
           await browser.notifications.create({
             type: "basic",
             iconUrl: iconLogo,
             title: browser.i18n.getMessage('downloadBookmarks'),
-            message: `${browser.i18n.getMessage('success')} (${browserType})`
+            message: `${browser.i18n.getMessage('success')}${fileInfo}`
           });
         }
       }

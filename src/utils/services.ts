@@ -1,6 +1,15 @@
 import { Setting } from './setting'
 import { http } from './http'
-import { BrowserType } from './models'
+import { BrowserType, SyncDataInfo } from './models'
+
+// 文件信息接口
+export interface FileInfo {
+    fileName: string;
+    bookmarkCount: number;
+    browserType?: string;
+    createDate?: number;
+    version?: string;
+}
 
 class BookmarkService {
     async get(fileName?: string) {
@@ -22,7 +31,7 @@ class BookmarkService {
         return null;
     }
 
-    // 获取所有浏览器的书签文件
+    // 获取所有浏览器的书签文件（返回原始内容）
     async getAllBrowserBookmarks() {
         let setting = await Setting.build();
         let resp = await http.get(`gists/${setting.gistID}`).json() as any
@@ -43,6 +52,49 @@ class BookmarkService {
             }
         }
         return result;
+    }
+
+    // 获取所有书签文件的详细信息
+    async getAllBookmarkFilesInfo(): Promise<FileInfo[]> {
+        const filesContent = await this.getAllBrowserBookmarks();
+        const result: FileInfo[] = [];
+
+        for (const [fileName, content] of Object.entries(filesContent)) {
+            try {
+                const syncData: SyncDataInfo = JSON.parse(content);
+                const bookmarkCount = this.countBookmarks(syncData.bookmarks || []);
+
+                result.push({
+                    fileName,
+                    bookmarkCount,
+                    browserType: syncData.browserType,
+                    createDate: syncData.createDate,
+                    version: syncData.version
+                });
+            } catch (err) {
+                console.error(`解析文件 ${fileName} 失败:`, err);
+                // 即使解析失败也添加基本信息
+                result.push({
+                    fileName,
+                    bookmarkCount: 0
+                });
+            }
+        }
+
+        return result;
+    }
+
+    // 递归计算书签数量
+    private countBookmarks(bookmarks: any[]): number {
+        let count = 0;
+        for (const bookmark of bookmarks) {
+            if (bookmark.url) {
+                count++;
+            } else if (bookmark.children) {
+                count += this.countBookmarks(bookmark.children);
+            }
+        }
+        return count;
     }
 
     async getAllGist() {

@@ -10,18 +10,37 @@ import {
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './popup.css'
 
+// 文件信息接口
+interface FileInfo {
+    fileName: string;
+    bookmarkCount: number;
+    browserType?: string;
+    createDate?: number;
+    version?: string;
+}
+
 const Popup: React.FC = () => {
     const [count, setCount] = useState({ local: "0", remote: "0" })
     const [enableMultiBrowser, setEnableMultiBrowser] = useState(false)
     const [currentBrowser, setCurrentBrowser] = useState("unknown")
     const [browserCounts, setBrowserCounts] = useState<Record<string, string>>({})
+    const [availableFiles, setAvailableFiles] = useState<FileInfo[]>([])
+    const [selectedFile, setSelectedFile] = useState<string>("")
+    const [showFileSelector, setShowFileSelector] = useState(false)
 
     useEffect(() => {
         document.addEventListener('click', (e: MouseEvent) => {
             let elem = e.target as HTMLInputElement;
             if (elem != null && elem.className === 'dropdown-item') {
                 elem.setAttribute('disabled', 'disabled');
-                browser.runtime.sendMessage({ name: elem.name })
+                const message: any = { name: elem.name };
+
+                // 如果是下载操作且选择了文件，传递文件名
+                if (elem.name === 'download' && selectedFile) {
+                    message.fileName = selectedFile;
+                }
+
+                browser.runtime.sendMessage(message)
                     .then((res) => {
                         elem.removeAttribute('disabled');
                         console.log("msg", Date.now())
@@ -33,7 +52,7 @@ const Popup: React.FC = () => {
                     });
             }
         });
-    }, [])
+    }, [selectedFile])
 
     const loadCounts = async () => {
         let data = await browser.storage.local.get([
@@ -60,8 +79,22 @@ const Popup: React.FC = () => {
         setBrowserCounts(counts);
     }
 
+    const loadAvailableFiles = async () => {
+        try {
+            const files = await browser.runtime.sendMessage({ name: 'getAvailableFiles' });
+            console.log('可用文件列表:', files);
+            setAvailableFiles(files || []);
+            setShowFileSelector(files && files.length > 1); // 只有多个文件时才显示选择器
+        } catch (err) {
+            console.error('获取文件列表失败:', err);
+            setAvailableFiles([]);
+            setShowFileSelector(false);
+        }
+    }
+
     useEffect(() => {
         loadCounts();
+        loadAvailableFiles();
     }, [])
     return (
         <IconContext.Provider value={{ className: 'dropdown-item-icon' }}>
@@ -70,8 +103,36 @@ const Popup: React.FC = () => {
                     <AiOutlineCloudUpload />{browser.i18n.getMessage('uploadBookmarks')}
                     {enableMultiBrowser && <Badge variant="info" className="ml-2">{currentBrowser}</Badge>}
                 </Dropdown.Item>
+
+                {showFileSelector && (
+                    <Dropdown.ItemText>
+                        <Form.Group style={{ marginBottom: '0.5rem' }}>
+                            <Form.Label style={{ fontSize: '0.85em', marginBottom: '0.25rem' }}>
+                                <strong>选择要下载的配置:</strong>
+                            </Form.Label>
+                            <Form.Control
+                                as="select"
+                                size="sm"
+                                value={selectedFile}
+                                onChange={(e) => setSelectedFile(e.target.value)}
+                            >
+                                <option value="">当前浏览器配置</option>
+                                {availableFiles.map(file => (
+                                    <option key={file.fileName} value={file.fileName}>
+                                        {file.fileName} ({file.bookmarkCount} 个书签)
+                                        {file.browserType && ` - ${file.browserType}`}
+                                    </option>
+                                ))}
+                            </Form.Control>
+                        </Form.Group>
+                    </Dropdown.ItemText>
+                )}
+
                 <Dropdown.Item name='download' as="button" title={browser.i18n.getMessage('downloadBookmarksDesc')}>
                     <AiOutlineCloudDownload />{browser.i18n.getMessage('downloadBookmarks')}
+                    {selectedFile && <Badge variant="success" className="ml-2" style={{ fontSize: '0.7em' }}>
+                        {selectedFile}
+                    </Badge>}
                 </Dropdown.Item>
                 <Dropdown.Item name='removeAll' as="button" title={browser.i18n.getMessage('removeAllBookmarksDesc')}>
                     <AiOutlineClear />{browser.i18n.getMessage('removeAllBookmarks')}
