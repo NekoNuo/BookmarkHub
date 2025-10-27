@@ -27,32 +27,77 @@ const Popup: React.FC = () => {
     const [availableFiles, setAvailableFiles] = useState<FileInfo[]>([])
     const [selectedFile, setSelectedFile] = useState<string>("")
     const [showFileSelector, setShowFileSelector] = useState(false)
+    const [clearBeforeDownload, setClearBeforeDownload] = useState(false) // 下载前是否清空
+    const [statusMessage, setStatusMessage] = useState<{ text: string, type: 'success' | 'error' | '' }>({ text: '', type: '' })
+
+    // 处理操作按钮点击
+    const handleOperation = async (operationName: string, displayName: string) => {
+        const message: any = { name: operationName };
+
+        // 清空之前的状态消息
+        setStatusMessage({ text: '', type: '' });
+
+        // 如果是下载操作
+        if (operationName === 'download') {
+            // 传递选中的文件名
+            if (selectedFile) {
+                message.fileName = selectedFile;
+                console.log('[handleOperation] 下载文件:', selectedFile);
+            }
+            // 传递是否清空的选项
+            message.clearBeforeDownload = clearBeforeDownload;
+            console.log('[handleOperation] 下载前清空:', clearBeforeDownload);
+        }
+
+        try {
+            const res = await browser.runtime.sendMessage(message);
+            console.log("msg", Date.now(), res)
+
+            // 显示成功消息
+            if (res) {
+                setStatusMessage({
+                    text: `${displayName}成功！`,
+                    type: 'success'
+                });
+            } else {
+                setStatusMessage({
+                    text: `${displayName}失败，请重试`,
+                    type: 'error'
+                });
+            }
+
+            // 3秒后清空消息
+            setTimeout(() => {
+                setStatusMessage({ text: '', type: '' });
+            }, 3000);
+
+            // 刷新数据
+            loadCounts();
+        } catch (c: any) {
+            console.log("error", c)
+            setStatusMessage({
+                text: `${displayName}失败: ${c.message || '未知错误'}`,
+                type: 'error'
+            });
+
+            // 5秒后清空错误消息
+            setTimeout(() => {
+                setStatusMessage({ text: '', type: '' });
+            }, 5000);
+        }
+    }
 
     useEffect(() => {
-        document.addEventListener('click', (e: MouseEvent) => {
+        // 保留设置按钮的原有处理方式
+        const handleClick = (e: MouseEvent) => {
             let elem = e.target as HTMLInputElement;
-            if (elem != null && elem.className === 'dropdown-item') {
-                elem.setAttribute('disabled', 'disabled');
-                const message: any = { name: elem.name };
-
-                // 如果是下载操作且选择了文件，传递文件名
-                if (elem.name === 'download' && selectedFile) {
-                    message.fileName = selectedFile;
-                }
-
-                browser.runtime.sendMessage(message)
-                    .then((res) => {
-                        elem.removeAttribute('disabled');
-                        console.log("msg", Date.now())
-                        // 刷新数据
-                        loadCounts();
-                    })
-                    .catch(c => {
-                        console.log("error", c)
-                    });
+            if (elem != null && elem.className === 'dropdown-item' && elem.name === 'setting') {
+                browser.runtime.sendMessage({ name: 'setting' });
             }
-        });
-    }, [selectedFile])
+        };
+        document.addEventListener('click', handleClick);
+        return () => document.removeEventListener('click', handleClick);
+    }, [])
 
     const loadCounts = async () => {
         let data = await browser.storage.local.get([
@@ -99,7 +144,30 @@ const Popup: React.FC = () => {
     return (
         <IconContext.Provider value={{ className: 'dropdown-item-icon' }}>
             <Dropdown.Menu show>
-                <Dropdown.Item name='upload' as="button" title={browser.i18n.getMessage('uploadBookmarksDesc')}>
+                {statusMessage.text && (
+                    <>
+                        <Dropdown.ItemText>
+                            <div style={{
+                                padding: '0.5rem',
+                                borderRadius: '0.25rem',
+                                backgroundColor: statusMessage.type === 'success' ? '#d4edda' : '#f8d7da',
+                                color: statusMessage.type === 'success' ? '#155724' : '#721c24',
+                                border: `1px solid ${statusMessage.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`,
+                                fontSize: '0.9em',
+                                textAlign: 'center'
+                            }}>
+                                {statusMessage.text}
+                            </div>
+                        </Dropdown.ItemText>
+                        <Dropdown.Divider />
+                    </>
+                )}
+
+                <Dropdown.Item
+                    as="button"
+                    title={browser.i18n.getMessage('uploadBookmarksDesc')}
+                    onClick={() => handleOperation('upload', '上传')}
+                >
                     <AiOutlineCloudUpload />{browser.i18n.getMessage('uploadBookmarks')}
                     {enableMultiBrowser && <Badge variant="info" className="ml-2">{currentBrowser}</Badge>}
                 </Dropdown.Item>
@@ -128,13 +196,21 @@ const Popup: React.FC = () => {
                     </Dropdown.ItemText>
                 )}
 
-                <Dropdown.Item name='download' as="button" title={browser.i18n.getMessage('downloadBookmarksDesc')}>
+                <Dropdown.Item
+                    as="button"
+                    title={browser.i18n.getMessage('downloadBookmarksDesc')}
+                    onClick={() => handleOperation('download', '下载')}
+                >
                     <AiOutlineCloudDownload />{browser.i18n.getMessage('downloadBookmarks')}
                     {selectedFile && <Badge variant="success" className="ml-2" style={{ fontSize: '0.7em' }}>
                         {selectedFile}
                     </Badge>}
                 </Dropdown.Item>
-                <Dropdown.Item name='removeAll' as="button" title={browser.i18n.getMessage('removeAllBookmarksDesc')}>
+                <Dropdown.Item
+                    as="button"
+                    title={browser.i18n.getMessage('removeAllBookmarksDesc')}
+                    onClick={() => handleOperation('removeAll', '清空')}
+                >
                     <AiOutlineClear />{browser.i18n.getMessage('removeAllBookmarks')}
                 </Dropdown.Item>
                 <Dropdown.Divider />
