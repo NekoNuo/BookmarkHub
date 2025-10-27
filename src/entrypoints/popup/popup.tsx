@@ -172,29 +172,41 @@ const Popup: React.FC = () => {
                     {enableMultiBrowser && <Badge variant="info" className="ml-2">{currentBrowser}</Badge>}
                 </Dropdown.Item>
 
-                {showFileSelector && (
-                    <Dropdown.ItemText>
-                        <Form.Group style={{ marginBottom: '0.5rem' }}>
-                            <Form.Label style={{ fontSize: '0.85em', marginBottom: '0.25rem' }}>
-                                <strong>选择要下载的配置:</strong>
-                            </Form.Label>
-                            <Form.Control
-                                as="select"
-                                size="sm"
-                                value={selectedFile}
-                                onChange={(e) => setSelectedFile(e.target.value)}
-                            >
-                                <option value="">当前浏览器配置</option>
-                                {availableFiles.map(file => (
-                                    <option key={file.fileName} value={file.fileName}>
-                                        {file.fileName} ({file.bookmarkCount} 个书签)
-                                        {file.browserType && ` - ${file.browserType}`}
-                                    </option>
-                                ))}
-                            </Form.Control>
-                        </Form.Group>
-                    </Dropdown.ItemText>
-                )}
+                <Dropdown.ItemText>
+                    <Form.Group style={{ marginBottom: '0.5rem' }}>
+                        {showFileSelector && (
+                            <>
+                                <Form.Label style={{ fontSize: '0.85em', marginBottom: '0.25rem' }}>
+                                    <strong>选择要下载的配置:</strong>
+                                </Form.Label>
+                                <Form.Control
+                                    as="select"
+                                    size="sm"
+                                    value={selectedFile}
+                                    onChange={(e) => setSelectedFile(e.target.value)}
+                                    style={{ marginBottom: '0.5rem' }}
+                                >
+                                    <option value="">当前浏览器配置</option>
+                                    {availableFiles.map(file => (
+                                        <option key={file.fileName} value={file.fileName}>
+                                            {file.fileName} ({file.bookmarkCount} 个书签)
+                                            {file.browserType && ` - ${file.browserType}`}
+                                        </option>
+                                    ))}
+                                </Form.Control>
+                            </>
+                        )}
+
+                        <Form.Check
+                            type="checkbox"
+                            id="clearBeforeDownload"
+                            label="下载前清空现有书签（默认合并）"
+                            checked={clearBeforeDownload}
+                            onChange={(e) => setClearBeforeDownload(e.target.checked)}
+                            style={{ fontSize: '0.85em' }}
+                        />
+                    </Form.Group>
+                </Dropdown.ItemText>
 
                 <Dropdown.Item
                     as="button"

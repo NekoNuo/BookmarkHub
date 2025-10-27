@@ -51,8 +51,9 @@ export default defineBackground(() => {
       isOperating = true;
       curOperType = OperType.SYNC;
       const fileName = msg.fileName; // 可选的文件名参数
-      console.log('[download] 开始下载操作, fileName:', fileName);
-      downloadBookmarks(fileName).then(() => {
+      const clearBeforeDownload = msg.clearBeforeDownload || false; // 是否清空现有书签
+      console.log('[download] 开始下载操作, fileName:', fileName, 'clearBeforeDownload:', clearBeforeDownload);
+      downloadBookmarks(fileName, clearBeforeDownload).then(() => {
         curOperType = OperType.NONE;
         isOperating = false;
         browser.action.setBadgeText({ text: "" });
@@ -207,7 +208,7 @@ export default defineBackground(() => {
       });
     }
   }
-  async function downloadBookmarks(fileNameOrBrowserType?: string | BrowserType) {
+  async function downloadBookmarks(fileNameOrBrowserType?: string | BrowserType, clearBeforeDownload: boolean = true) {
     try {
       let setting = await Setting.build()
       let gist: string | null = null;
@@ -245,9 +246,15 @@ export default defineBackground(() => {
           }
           return;
         }
-        console.log('[downloadBookmarks] 开始清空本地书签...');
-        await clearBookmarkTree();
-        console.log('[downloadBookmarks] 清空完成，开始创建书签...');
+        // 根据选项决定是否清空现有书签
+        if (clearBeforeDownload) {
+          console.log('[downloadBookmarks] 开始清空本地书签...');
+          await clearBookmarkTree();
+          console.log('[downloadBookmarks] 清空完成，开始创建书签...');
+        } else {
+          console.log('[downloadBookmarks] 合并模式，不清空现有书签，直接创建...');
+        }
+
         await createBookmarkTree(syncdata.bookmarks);
         console.log('[downloadBookmarks] 书签创建完成');
         const count = getBookmarkCount(syncdata.bookmarks);
