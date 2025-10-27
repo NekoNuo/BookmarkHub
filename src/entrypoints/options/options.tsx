@@ -49,6 +49,22 @@ const Popup: React.FC = () => {
                         />
                     </Col>
                 </Form.Group>
+
+                <Form.Group as={Row}>
+                    <Form.Label column="sm" sm={3} lg={2} xs={3}>启用多浏览器模式</Form.Label>
+                    <Col sm={9} lg={10} xs={9}>
+                        <Form.Check
+                            id="enableMultiBrowser"
+                            name="enableMultiBrowser"
+                            ref={register}
+                            type="switch"
+                        />
+                        <Form.Text className="text-muted">
+                            启用后，不同浏览器的书签将分别存储到不同的Gist文件中（如 bookmarks-chrome.json, bookmarks-firefox.json）
+                        </Form.Text>
+                    </Col>
+                </Form.Group>
+
                 <Form.Group as={Row}>
                     <Form.Label column="sm" sm={3} lg={2} xs={3}></Form.Label>
                     <Col sm={9} lg={10} xs={9}>

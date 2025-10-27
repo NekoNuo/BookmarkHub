@@ -8,6 +8,7 @@ export default new OptionsSync({
         gistFileName: 'BookmarkHub',
         enableNotify: true,
         githubURL: 'https://api.github.com',
+        enableMultiBrowser: false, // 是否启用多浏览器模式
     },
 
     // List of functions that are called when the extension is updated
