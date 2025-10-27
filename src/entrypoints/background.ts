@@ -208,7 +208,7 @@ export default defineBackground(() => {
       });
     }
   }
-  async function downloadBookmarks(fileNameOrBrowserType?: string | BrowserType, clearBeforeDownload: boolean = true) {
+  async function downloadBookmarks(fileNameOrBrowserType?: string | BrowserType, clearBeforeDownload: boolean = false) {
     try {
       let setting = await Setting.build()
       let gist: string | null = null;
