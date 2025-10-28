@@ -22,6 +22,58 @@
     font-size: 0.95rem;
 }
 
+.compare-controls {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.control-group label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #333;
+    white-space: nowrap;
+}
+
+.control-group select {
+    padding: 0.5rem 1rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    min-width: 200px;
+}
+
+.control-group select:hover {
+    border-color: #667eea;
+}
+
+.control-group select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.control-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
 .compare-stats {
     display: flex;
     gap: 1rem;
@@ -44,6 +96,10 @@
 
 .stat-card.remote-only {
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.stat-card.common {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
 }
 
 .stat-card h3 {
@@ -72,6 +128,10 @@
     overflow: hidden;
 }
 
+.compare-panel.full-width {
+    grid-column: 1 / -1;
+}
+
 .panel-header {
     padding: 1.25rem 1.5rem;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -89,10 +149,19 @@
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 }
 
+.panel-header.common {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+}
+
 .panel-header h2 {
     font-size: 1.1rem;
     font-weight: 600;
     margin: 0;
+}
+
+.panel-header .info-text {
+    font-size: 0.85rem;
+    opacity: 0.9;
 }
 
 .panel-header .select-all {

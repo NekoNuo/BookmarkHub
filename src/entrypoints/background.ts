@@ -117,13 +117,14 @@ export default defineBackground(() => {
     }
     if (msg.name === 'compareBookmarks') {
       // 对比本地和远程书签
-      console.log('[compareBookmarks] 开始对比书签');
-      compareBookmarks().then(result => {
+      const { compareType = 'url', fileName, showCommon = false } = msg;
+      console.log('[compareBookmarks] 开始对比书签, 类型:', compareType, '文件:', fileName, '显示公共:', showCommon);
+      compareBookmarks(compareType, fileName, showCommon).then(result => {
         console.log('[compareBookmarks] 对比完成:', result);
         sendResponse(result);
       }).catch(err => {
         console.error('[compareBookmarks] 对比失败:', err);
-        sendResponse({ localOnly: [], remoteOnly: [] });
+        sendResponse({ localOnly: [], remoteOnly: [], common: [] });
       });
     }
     if (msg.name === 'deleteLocalBookmarks') {
@@ -681,7 +682,7 @@ export default defineBackground(() => {
   // ========== 书签对比功能 ==========
 
   // 对比本地和远程书签
-  async function compareBookmarks() {
+  async function compareBookmarks(compareType: 'url' | 'title' = 'url', fileName?: string, showCommon: boolean = false) {
     try {
       const setting = await Setting.build();
 
@@ -691,10 +692,18 @@ export default defineBackground(() => {
       console.log('[compareBookmarks] 本地书签数量:', localBookmarks.length);
 
       // 获取远程书签
-      const gistContent = await BookmarkService.get();
+      let gistContent: string | null = null;
+      if (fileName) {
+        // 如果指定了文件名，从指定文件获取
+        gistContent = await BookmarkService.get(fileName);
+      } else {
+        // 否则使用默认方式获取
+        gistContent = await BookmarkService.get();
+      }
+
       if (!gistContent) {
         console.warn('[compareBookmarks] 远程书签为空');
-        return { localOnly: localBookmarks, remoteOnly: [] };
+        return { localOnly: localBookmarks, remoteOnly: [], common: [] };
       }
 
       const syncData: SyncDataInfo = JSON.parse(gistContent);
@@ -702,21 +711,43 @@ export default defineBackground(() => {
       const remoteBookmarks = extractBookmarksWithPath({ children: remoteTree } as any);
       console.log('[compareBookmarks] 远程书签数量:', remoteBookmarks.length);
 
-      // 创建 URL 映射
-      const localUrlMap = new Map(localBookmarks.map(b => [b.url, b]));
-      const remoteUrlMap = new Map(remoteBookmarks.map(b => [b.url, b]));
+      // 根据对比类型创建映射
+      let localMap: Map<string, any>;
+      let remoteMap: Map<string, any>;
+
+      if (compareType === 'url') {
+        localMap = new Map(localBookmarks.map(b => [b.url, b]));
+        remoteMap = new Map(remoteBookmarks.map(b => [b.url, b]));
+      } else {
+        // 按名称对比
+        localMap = new Map(localBookmarks.map(b => [b.title, b]));
+        remoteMap = new Map(remoteBookmarks.map(b => [b.title, b]));
+      }
 
       // 找出本地独有的书签
-      const localOnly = localBookmarks.filter(b => !remoteUrlMap.has(b.url));
+      const localOnly = localBookmarks.filter(b => {
+        const key = compareType === 'url' ? b.url : b.title;
+        return !remoteMap.has(key);
+      });
 
       // 找出远程独有的书签
-      const remoteOnly = remoteBookmarks.filter(b => !localUrlMap.has(b.url));
+      const remoteOnly = remoteBookmarks.filter(b => {
+        const key = compareType === 'url' ? b.url : b.title;
+        return !localMap.has(key);
+      });
 
-      console.log('[compareBookmarks] 本地独有:', localOnly.length, '远程独有:', remoteOnly.length);
+      // 找出公共书签（如果需要）
+      const common = showCommon ? localBookmarks.filter(b => {
+        const key = compareType === 'url' ? b.url : b.title;
+        return remoteMap.has(key);
+      }) : [];
+
+      console.log('[compareBookmarks] 本地独有:', localOnly.length, '远程独有:', remoteOnly.length, '公共:', common.length);
 
       return {
         localOnly: localOnly.map(b => ({ id: b.id, title: b.title, url: b.url, path: b.path })),
-        remoteOnly: remoteOnly.map(b => ({ title: b.title, url: b.url, path: b.path }))
+        remoteOnly: remoteOnly.map(b => ({ title: b.title, url: b.url, path: b.path })),
+        common: common.map(b => ({ id: b.id, title: b.title, url: b.url, path: b.path }))
       };
     } catch (err) {
       console.error('[compareBookmarks] 对比失败:', err);

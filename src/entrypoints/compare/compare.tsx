@@ -17,24 +17,75 @@ interface BookmarkItem {
 interface CompareResult {
     localOnly: BookmarkItem[]
     remoteOnly: BookmarkItem[]
+    common: BookmarkItem[] // 公共书签
+}
+
+// 文件信息接口
+interface FileInfo {
+    fileName: string
+    bookmarkCount: number
 }
 
 const ComparePage: React.FC = () => {
     const [loading, setLoading] = useState(true)
-    const [compareResult, setCompareResult] = useState<CompareResult>({ localOnly: [], remoteOnly: [] })
+    const [compareResult, setCompareResult] = useState<CompareResult>({ localOnly: [], remoteOnly: [], common: [] })
     const [selectedLocal, setSelectedLocal] = useState<Set<string>>(new Set())
     const [selectedRemote, setSelectedRemote] = useState<Set<string>>(new Set())
     const [statusMessage, setStatusMessage] = useState<{ text: string, type: 'success' | 'error' | '' }>({ text: '', type: '' })
 
-    // 加载对比数据
+    // 新增状态
+    const [compareType, setCompareType] = useState<'url' | 'title'>('url') // 对比类型：url 或 title
+    const [availableFiles, setAvailableFiles] = useState<FileInfo[]>([]) // 可用的远程配置文件
+    const [selectedFile, setSelectedFile] = useState<string>('') // 选择的远程配置文件
+    const [showCommon, setShowCommon] = useState(false) // 是否显示公共书签
+
+    // 加载可用文件列表
     useEffect(() => {
-        loadCompareData()
+        loadAvailableFiles()
     }, [])
 
+    // 当对比参数改变时重新加载
+    useEffect(() => {
+        if (selectedFile) {
+            loadCompareData()
+        }
+    }, [compareType, selectedFile, showCommon])
+
+    const loadAvailableFiles = async () => {
+        try {
+            const files = await browser.runtime.sendMessage({ name: 'getAvailableFiles' })
+            console.log('[ComparePage] 可用文件:', files)
+            setAvailableFiles(files || [])
+
+            // 尝试恢复上次选择的文件
+            const storage = await browser.storage.local.get(['lastSelectedFile'])
+            const lastFile = storage.lastSelectedFile
+
+            if (lastFile && files?.some((f: FileInfo) => f.fileName === lastFile)) {
+                setSelectedFile(lastFile)
+            } else if (files && files.length > 0) {
+                // 如果没有上次选择的文件，默认选择第一个
+                setSelectedFile(files[0].fileName)
+            }
+        } catch (err) {
+            console.error('[ComparePage] 加载文件列表失败:', err)
+        }
+    }
+
     const loadCompareData = async () => {
+        if (!selectedFile) {
+            console.log('[ComparePage] 未选择文件，跳过加载')
+            return
+        }
+
         setLoading(true)
         try {
-            const result = await browser.runtime.sendMessage({ name: 'compareBookmarks' })
+            const result = await browser.runtime.sendMessage({
+                name: 'compareBookmarks',
+                compareType,
+                fileName: selectedFile,
+                showCommon
+            })
             console.log('[ComparePage] 对比结果:', result)
             setCompareResult(result)
         } catch (err) {
@@ -181,6 +232,50 @@ const ComparePage: React.FC = () => {
                 <p>对比本地和远程书签的差异，选择性同步</p>
             </div>
 
+            {/* 控制面板 */}
+            <div className="compare-controls">
+                <div className="control-group">
+                    <label>对比方式：</label>
+                    <select
+                        value={compareType}
+                        onChange={(e) => setCompareType(e.target.value as 'url' | 'title')}
+                    >
+                        <option value="url">按 URL 对比</option>
+                        <option value="title">按名称对比</option>
+                    </select>
+                </div>
+
+                <div className="control-group">
+                    <label>远程配置：</label>
+                    <select
+                        value={selectedFile}
+                        onChange={(e) => setSelectedFile(e.target.value)}
+                        disabled={availableFiles.length === 0}
+                    >
+                        {availableFiles.length === 0 ? (
+                            <option value="">无可用配置</option>
+                        ) : (
+                            availableFiles.map(file => (
+                                <option key={file.fileName} value={file.fileName}>
+                                    {file.fileName} ({file.bookmarkCount} 个书签)
+                                </option>
+                            ))
+                        )}
+                    </select>
+                </div>
+
+                <div className="control-group">
+                    <label>
+                        <input
+                            type="checkbox"
+                            checked={showCommon}
+                            onChange={(e) => setShowCommon(e.target.checked)}
+                        />
+                        显示公共书签
+                    </label>
+                </div>
+            </div>
+
             <div className="compare-stats">
                 <div className="stat-card local-only">
                     <h3>本地独有</h3>
@@ -190,6 +285,12 @@ const ComparePage: React.FC = () => {
                     <h3>远程独有</h3>
                     <div className="count">{compareResult.remoteOnly.length}</div>
                 </div>
+                {showCommon && (
+                    <div className="stat-card common">
+                        <h3>公共书签</h3>
+                        <div className="count">{compareResult.common.length}</div>
+                    </div>
+                )}
             </div>
 
             <div className="compare-grid">
@@ -292,6 +393,34 @@ const ComparePage: React.FC = () => {
                         </button>
                     </div>
                 </div>
+
+                {/* 公共书签 */}
+                {showCommon && (
+                    <div className="compare-panel full-width">
+                        <div className="panel-header common">
+                            <h2>🔗 公共书签</h2>
+                            <span className="info-text">本地和远程都存在的书签</span>
+                        </div>
+                        <div className="bookmark-list">
+                            {compareResult.common.length === 0 ? (
+                                <div className="empty-state">
+                                    <AiOutlineCheckCircle size={64} />
+                                    <p>没有公共书签</p>
+                                </div>
+                            ) : (
+                                compareResult.common.map((bookmark, index) => (
+                                    <div key={index} className="bookmark-item">
+                                        <div className="bookmark-info">
+                                            <div className="bookmark-title">{bookmark.title || '无标题'}</div>
+                                            <div className="bookmark-url">{bookmark.url}</div>
+                                            {bookmark.path && <div className="bookmark-path">{bookmark.path}</div>}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     )
