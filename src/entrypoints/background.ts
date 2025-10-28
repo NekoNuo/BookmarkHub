@@ -115,6 +115,43 @@ export default defineBackground(() => {
         sendResponse(true);
       });
     }
+    if (msg.name === 'compareBookmarks') {
+      // 对比本地和远程书签
+      console.log('[compareBookmarks] 开始对比书签');
+      compareBookmarks().then(result => {
+        console.log('[compareBookmarks] 对比完成:', result);
+        sendResponse(result);
+      }).catch(err => {
+        console.error('[compareBookmarks] 对比失败:', err);
+        sendResponse({ localOnly: [], remoteOnly: [] });
+      });
+    }
+    if (msg.name === 'deleteLocalBookmarks') {
+      // 删除本地书签
+      const bookmarks = msg.bookmarks || [];
+      console.log('[deleteLocalBookmarks] 删除书签:', bookmarks.length);
+      deleteLocalBookmarks(bookmarks).then(result => {
+        console.log('[deleteLocalBookmarks] 删除完成:', result);
+        refreshLocalCount();
+        sendResponse(result);
+      }).catch(err => {
+        console.error('[deleteLocalBookmarks] 删除失败:', err);
+        sendResponse({ success: false, error: err.message });
+      });
+    }
+    if (msg.name === 'addRemoteBookmarksToLocal') {
+      // 添加远程书签到本地
+      const bookmarks = msg.bookmarks || [];
+      console.log('[addRemoteBookmarksToLocal] 添加书签:', bookmarks.length);
+      addRemoteBookmarksToLocal(bookmarks).then(result => {
+        console.log('[addRemoteBookmarksToLocal] 添加完成:', result);
+        refreshLocalCount();
+        sendResponse(result);
+      }).catch(err => {
+        console.error('[addRemoteBookmarksToLocal] 添加失败:', err);
+        sendResponse({ success: false, error: err.message });
+      });
+    }
     return true;
   });
   browser.bookmarks.onCreated.addListener((id, info) => {
@@ -640,5 +677,149 @@ export default defineBackground(() => {
       }
     }
   });
+
+  // ========== 书签对比功能 ==========
+
+  // 对比本地和远程书签
+  async function compareBookmarks() {
+    try {
+      const setting = await Setting.build();
+
+      // 获取本地书签
+      const localTree = await browser.bookmarks.getTree();
+      const localBookmarks = extractBookmarksWithPath(localTree[0]);
+      console.log('[compareBookmarks] 本地书签数量:', localBookmarks.length);
+
+      // 获取远程书签
+      const gistContent = await BookmarkService.get();
+      if (!gistContent) {
+        console.warn('[compareBookmarks] 远程书签为空');
+        return { localOnly: localBookmarks, remoteOnly: [] };
+      }
+
+      const syncData: SyncDataInfo = JSON.parse(gistContent);
+      const remoteTree = syncData.bookmarks || [];
+      const remoteBookmarks = extractBookmarksWithPath({ children: remoteTree } as any);
+      console.log('[compareBookmarks] 远程书签数量:', remoteBookmarks.length);
+
+      // 创建 URL 映射
+      const localUrlMap = new Map(localBookmarks.map(b => [b.url, b]));
+      const remoteUrlMap = new Map(remoteBookmarks.map(b => [b.url, b]));
+
+      // 找出本地独有的书签
+      const localOnly = localBookmarks.filter(b => !remoteUrlMap.has(b.url));
+
+      // 找出远程独有的书签
+      const remoteOnly = remoteBookmarks.filter(b => !localUrlMap.has(b.url));
+
+      console.log('[compareBookmarks] 本地独有:', localOnly.length, '远程独有:', remoteOnly.length);
+
+      return {
+        localOnly: localOnly.map(b => ({ id: b.id, title: b.title, url: b.url, path: b.path })),
+        remoteOnly: remoteOnly.map(b => ({ title: b.title, url: b.url, path: b.path }))
+      };
+    } catch (err) {
+      console.error('[compareBookmarks] 对比失败:', err);
+      throw err;
+    }
+  }
+
+  // 从书签树中提取所有书签（带路径）
+  function extractBookmarksWithPath(node: any, path: string = ''): any[] {
+    const results: any[] = [];
+
+    if (!node) return results;
+
+    // 更新路径
+    const currentPath = node.title ? (path ? `${path} > ${node.title}` : node.title) : path;
+
+    // 如果是书签（有 URL）
+    if (node.url) {
+      results.push({
+        id: node.id,
+        title: node.title || '',
+        url: node.url,
+        path: path // 使用父路径，不包含自己
+      });
+    }
+
+    // 递归处理子节点
+    if (node.children && node.children.length > 0) {
+      for (const child of node.children) {
+        results.push(...extractBookmarksWithPath(child, currentPath));
+      }
+    }
+
+    return results;
+  }
+
+  // 删除本地书签
+  async function deleteLocalBookmarks(bookmarks: any[]) {
+    let deletedCount = 0;
+    const errors: string[] = [];
+
+    curOperType = OperType.REMOVE;
+
+    for (const bookmark of bookmarks) {
+      try {
+        if (bookmark.id) {
+          await browser.bookmarks.remove(bookmark.id);
+          deletedCount++;
+          console.log('[deleteLocalBookmarks] 已删除:', bookmark.title);
+        }
+      } catch (err: any) {
+        console.error('[deleteLocalBookmarks] 删除失败:', bookmark.title, err);
+        errors.push(`${bookmark.title}: ${err.message}`);
+      }
+    }
+
+    curOperType = OperType.NONE;
+
+    return {
+      success: true,
+      deletedCount,
+      errors: errors.length > 0 ? errors : undefined
+    };
+  }
+
+  // 添加远程书签到本地
+  async function addRemoteBookmarksToLocal(bookmarks: any[]) {
+    let addedCount = 0;
+    const errors: string[] = [];
+
+    curOperType = OperType.SYNC;
+
+    // 获取或创建"其他书签"文件夹
+    const tree = await browser.bookmarks.getTree();
+    let otherBookmarksId = tree[0].children?.find(c => c.title === 'Other Bookmarks' || c.title === '其他书签')?.id;
+
+    if (!otherBookmarksId) {
+      // 如果找不到，使用第一个文件夹
+      otherBookmarksId = tree[0].children?.[0]?.id;
+    }
+
+    for (const bookmark of bookmarks) {
+      try {
+        await browser.bookmarks.create({
+          parentId: otherBookmarksId,
+          title: bookmark.title || '无标题',
+          url: bookmark.url
+        });
+        addedCount++;
+        console.log('[addRemoteBookmarksToLocal] 已添加:', bookmark.title);
+      } catch (err: any) {
+        console.error('[addRemoteBookmarksToLocal] 添加失败:', bookmark.title, err);
+        errors.push(`${bookmark.title}: ${err.message}`);
+      }
+    }
+
+    curOperType = OperType.NONE;
+
+    return {
+      success: true,
+      addedCount,
+      errors: errors.length > 0 ? errors : undefined
+    };
+  }
 
 });

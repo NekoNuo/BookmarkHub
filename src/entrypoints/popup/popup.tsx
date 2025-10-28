@@ -4,7 +4,8 @@ import { IconContext } from 'react-icons'
 import {
     AiOutlineCloudUpload, AiOutlineCloudDownload,
     AiOutlineSetting, AiOutlineClear,
-    AiOutlineInfoCircle, AiOutlineGithub, AiOutlineReload
+    AiOutlineInfoCircle, AiOutlineGithub, AiOutlineReload,
+    AiOutlineSwap
 } from 'react-icons/ai'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../../assets/theme.css';
@@ -336,6 +337,17 @@ const Popup: React.FC = () => {
                             <h2>其他操作</h2>
                         </div>
                         <div className="secondary-actions">
+                            <button
+                                className="ghost-button"
+                                title="对比本地和远程书签的差异"
+                                onClick={async () => {
+                                    const compareUrl = browser.runtime.getURL('compare.html');
+                                    await browser.tabs.create({ url: compareUrl });
+                                }}
+                            >
+                                <AiOutlineSwap />
+                                <span>对比书签</span>
+                            </button>
                             <button
                                 className="danger-button"
                                 title={browser.i18n.getMessage('removeAllBookmarksDesc')}
