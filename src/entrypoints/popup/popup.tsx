@@ -28,6 +28,8 @@ const Popup: React.FC = () => {
     const [selectedFile, setSelectedFile] = useState<string>("")
     const [showFileSelector, setShowFileSelector] = useState(false)
     const [clearBeforeDownload, setClearBeforeDownload] = useState(false) // 下载前是否清空
+    const [deduplicateOnUpload, setDeduplicateOnUpload] = useState(false) // 上传时是否去重
+    const [deduplicateOnDownload, setDeduplicateOnDownload] = useState(false) // 下载时是否去重
     const [statusMessage, setStatusMessage] = useState<{ text: string, type: 'success' | 'error' | '' }>({ text: '', type: '' })
 
     // 处理操作按钮点击
@@ -36,6 +38,12 @@ const Popup: React.FC = () => {
 
         // 清空之前的状态消息
         setStatusMessage({ text: '', type: '' });
+
+        // 如果是上传操作
+        if (operationName === 'upload') {
+            message.deduplicate = deduplicateOnUpload;
+            console.log('[handleOperation] 上传时去重:', deduplicateOnUpload);
+        }
 
         // 如果是下载操作
         if (operationName === 'download') {
@@ -47,6 +55,9 @@ const Popup: React.FC = () => {
             // 传递是否清空的选项
             message.clearBeforeDownload = clearBeforeDownload;
             console.log('[handleOperation] 下载前清空:', clearBeforeDownload);
+            // 传递是否去重的选项
+            message.deduplicate = deduplicateOnDownload;
+            console.log('[handleOperation] 下载时去重:', deduplicateOnDownload);
         }
 
         try {
@@ -163,6 +174,19 @@ const Popup: React.FC = () => {
                     </>
                 )}
 
+                <Dropdown.ItemText>
+                    <Form.Group style={{ marginBottom: '0.5rem' }}>
+                        <Form.Check
+                            type="checkbox"
+                            id="deduplicateOnUpload"
+                            label="上传时去重（默认不去重）"
+                            checked={deduplicateOnUpload}
+                            onChange={(e) => setDeduplicateOnUpload(e.target.checked)}
+                            style={{ fontSize: '0.85em' }}
+                        />
+                    </Form.Group>
+                </Dropdown.ItemText>
+
                 <Dropdown.Item
                     as="button"
                     title={browser.i18n.getMessage('uploadBookmarksDesc')}
@@ -170,6 +194,7 @@ const Popup: React.FC = () => {
                 >
                     <AiOutlineCloudUpload />{browser.i18n.getMessage('uploadBookmarks')}
                     {enableMultiBrowser && <Badge variant="info" className="ml-2">{currentBrowser}</Badge>}
+                    {deduplicateOnUpload && <Badge variant="warning" className="ml-2" style={{ fontSize: '0.7em' }}>去重</Badge>}
                 </Dropdown.Item>
 
                 <Dropdown.ItemText>
@@ -203,6 +228,14 @@ const Popup: React.FC = () => {
                             label="下载前清空现有书签（默认合并）"
                             checked={clearBeforeDownload}
                             onChange={(e) => setClearBeforeDownload(e.target.checked)}
+                            style={{ fontSize: '0.85em', marginBottom: '0.25rem' }}
+                        />
+                        <Form.Check
+                            type="checkbox"
+                            id="deduplicateOnDownload"
+                            label="下载时去重（默认不去重）"
+                            checked={deduplicateOnDownload}
+                            onChange={(e) => setDeduplicateOnDownload(e.target.checked)}
                             style={{ fontSize: '0.85em' }}
                         />
                     </Form.Group>
@@ -217,6 +250,7 @@ const Popup: React.FC = () => {
                     {selectedFile && <Badge variant="success" className="ml-2" style={{ fontSize: '0.7em' }}>
                         {selectedFile}
                     </Badge>}
+                    {deduplicateOnDownload && <Badge variant="warning" className="ml-2" style={{ fontSize: '0.7em' }}>去重</Badge>}
                 </Dropdown.Item>
                 <Dropdown.Item
                     as="button"

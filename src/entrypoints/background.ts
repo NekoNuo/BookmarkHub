@@ -27,8 +27,9 @@ export default defineBackground(() => {
       }
       isOperating = true;
       curOperType = OperType.SYNC;
-      console.log('[upload] 开始上传操作');
-      uploadBookmarks().then(() => {
+      const deduplicate = msg.deduplicate || false; // 是否去重
+      console.log('[upload] 开始上传操作, deduplicate:', deduplicate);
+      uploadBookmarks(deduplicate).then(() => {
         curOperType = OperType.NONE;
         isOperating = false;
         browser.action.setBadgeText({ text: "" });
@@ -52,8 +53,9 @@ export default defineBackground(() => {
       curOperType = OperType.SYNC;
       const fileName = msg.fileName; // 可选的文件名参数
       const clearBeforeDownload = msg.clearBeforeDownload || false; // 是否清空现有书签
-      console.log('[download] 开始下载操作, fileName:', fileName, 'clearBeforeDownload:', clearBeforeDownload);
-      downloadBookmarks(fileName, clearBeforeDownload).then(() => {
+      const deduplicate = msg.deduplicate || false; // 是否去重
+      console.log('[download] 开始下载操作, fileName:', fileName, 'clearBeforeDownload:', clearBeforeDownload, 'deduplicate:', deduplicate);
+      downloadBookmarks(fileName, clearBeforeDownload, deduplicate).then(() => {
         curOperType = OperType.NONE;
         isOperating = false;
         browser.action.setBadgeText({ text: "" });
@@ -141,7 +143,45 @@ export default defineBackground(() => {
     }
   })
 
-  async function uploadBookmarks() {
+  // 去重函数：根据 URL 去重，保留第一个出现的书签
+  function deduplicateBookmarks(bookmarks: any[]): any[] {
+    const seenUrls = new Set<string>();
+    const result: any[] = [];
+
+    function processBookmark(bookmark: any): any | null {
+      if (bookmark.url) {
+        // 如果是书签（有 URL）
+        if (seenUrls.has(bookmark.url)) {
+          console.log(`[deduplicate] 跳过重复书签: "${bookmark.title}" (${bookmark.url})`);
+          return null; // 重复，跳过
+        }
+        seenUrls.add(bookmark.url);
+        return bookmark;
+      } else if (bookmark.children) {
+        // 如果是文件夹
+        const deduplicatedChildren = bookmark.children
+          .map((child: any) => processBookmark(child))
+          .filter((child: any) => child !== null);
+
+        return {
+          ...bookmark,
+          children: deduplicatedChildren
+        };
+      }
+      return bookmark;
+    }
+
+    for (const bookmark of bookmarks) {
+      const processed = processBookmark(bookmark);
+      if (processed !== null) {
+        result.push(processed);
+      }
+    }
+
+    return result;
+  }
+
+  async function uploadBookmarks(deduplicate: boolean = false) {
     try {
       let setting = await Setting.build()
       if (setting.githubToken == '') {
@@ -161,6 +201,15 @@ export default defineBackground(() => {
       syncdata.createDate = Date.now();
       syncdata.bookmarks = formatBookmarks(bookmarks);
       console.log('[uploadBookmarks] 格式化后的书签:', JSON.stringify(syncdata.bookmarks, null, 2));
+
+      // 如果需要去重
+      if (deduplicate && syncdata.bookmarks) {
+        console.log('[uploadBookmarks] 开始去重...');
+        const beforeCount = getBookmarkCount(syncdata.bookmarks);
+        syncdata.bookmarks = deduplicateBookmarks(syncdata.bookmarks);
+        const afterCount = getBookmarkCount(syncdata.bookmarks);
+        console.log(`[uploadBookmarks] 去重完成: ${beforeCount} -> ${afterCount} (删除 ${beforeCount - afterCount} 个重复)`);
+      }
 
       syncdata.browser = navigator.userAgent;
       syncdata.browserType = setting.browserType; // 添加浏览器类型标记
@@ -208,7 +257,7 @@ export default defineBackground(() => {
       });
     }
   }
-  async function downloadBookmarks(fileNameOrBrowserType?: string | BrowserType, clearBeforeDownload: boolean = false) {
+  async function downloadBookmarks(fileNameOrBrowserType?: string | BrowserType, clearBeforeDownload: boolean = false, deduplicate: boolean = false) {
     try {
       let setting = await Setting.build()
       let gist: string | null = null;
@@ -246,6 +295,15 @@ export default defineBackground(() => {
           }
           return;
         }
+        // 如果需要去重
+        if (deduplicate && syncdata.bookmarks) {
+          console.log('[downloadBookmarks] 开始去重...');
+          const beforeCount = getBookmarkCount(syncdata.bookmarks);
+          syncdata.bookmarks = deduplicateBookmarks(syncdata.bookmarks);
+          const afterCount = getBookmarkCount(syncdata.bookmarks);
+          console.log(`[downloadBookmarks] 去重完成: ${beforeCount} -> ${afterCount} (删除 ${beforeCount - afterCount} 个重复)`);
+        }
+
         // 根据选项决定是否清空现有书签
         if (clearBeforeDownload) {
           console.log('[downloadBookmarks] 开始清空本地书签...');
