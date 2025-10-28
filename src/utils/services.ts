@@ -39,15 +39,13 @@ class BookmarkService {
 
         if (resp?.files) {
             const filenames = Object.keys(resp.files);
-            // 查找所有书签文件
+            // 获取所有文件（不过滤）
             for (const filename of filenames) {
-                if (filename.startsWith('bookmarks-') || filename === 'bookmarks.json' || filename === 'BookmarkHub') {
-                    const gistFile = resp.files[filename];
-                    if (gistFile.truncated) {
-                        result[filename] = await http.get(gistFile.raw_url, {prefixUrl: ''}).text();
-                    } else {
-                        result[filename] = gistFile.content;
-                    }
+                const gistFile = resp.files[filename];
+                if (gistFile.truncated) {
+                    result[filename] = await http.get(gistFile.raw_url, {prefixUrl: ''}).text();
+                } else {
+                    result[filename] = gistFile.content;
                 }
             }
         }

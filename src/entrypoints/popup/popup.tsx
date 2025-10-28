@@ -233,7 +233,8 @@ const Popup: React.FC = () => {
                                 <option value="">📱 当前浏览器配置</option>
                                 {availableFiles.map(file => (
                                     <option key={file.fileName} value={file.fileName}>
-                                        📄 {file.fileName} ({file.bookmarkCount} 个书签)
+                                        📄 {file.fileName}
+                                        {file.bookmarkCount > 0 ? ` (${file.bookmarkCount} 个书签)` : ' (空文件或无效格式)'}
                                         {file.browserType && ` - ${file.browserType}`}
                                     </option>
                                 ))}
