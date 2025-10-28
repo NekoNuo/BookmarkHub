@@ -164,7 +164,8 @@ const Popup: React.FC = () => {
             "remoteCount_chrome",
             "remoteCount_firefox",
             "remoteCount_edge",
-            "remoteCount_safari"
+            "remoteCount_safari",
+            "lastSelectedFile" // 加载上次选择的文件
         ]);
         setCount({ local: data["localCount"] || "0", remote: data["remoteCount"] || "0" });
         setEnableMultiBrowser(data["enableMultiBrowser"] || false);
@@ -178,6 +179,12 @@ const Popup: React.FC = () => {
             safari: data["remoteCount_safari"] || "0"
         };
         setBrowserCounts(counts);
+
+        // 恢复上次选择的文件
+        if (data["lastSelectedFile"]) {
+            setSelectedFile(data["lastSelectedFile"]);
+            console.log('[loadCounts] 恢复上次选择的文件:', data["lastSelectedFile"]);
+        }
     }
 
     const loadAvailableFiles = async () => {
@@ -267,7 +274,13 @@ const Popup: React.FC = () => {
                                     <select
                                         id="fileSelect"
                                         value={selectedFile}
-                                        onChange={(e) => setSelectedFile(e.target.value)}
+                                        onChange={async (e) => {
+                                            const newValue = e.target.value;
+                                            setSelectedFile(newValue);
+                                            // 保存选择到 storage
+                                            await browser.storage.local.set({ lastSelectedFile: newValue });
+                                            console.log('[fileSelect] 保存选择的文件:', newValue);
+                                        }}
                                     >
                                         <option value="">当前浏览器配置</option>
                                         {availableFiles.map(file => (
