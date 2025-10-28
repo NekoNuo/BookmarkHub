@@ -66,6 +66,43 @@ const Popup: React.FC = () => {
                 </Form.Group>
 
                 <Form.Group as={Row}>
+                    <Form.Label column="sm" sm={3} lg={2} xs={3}>启用定时上传</Form.Label>
+                    <Col sm={9} lg={10} xs={9}>
+                        <Form.Check
+                            id="enableAutoSync"
+                            name="enableAutoSync"
+                            ref={register}
+                            type="switch"
+                        />
+                        <Form.Text className="text-muted">
+                            启用后，将按照设定的时间间隔自动上传书签到 Gist
+                        </Form.Text>
+                    </Col>
+                </Form.Group>
+
+                <Form.Group as={Row}>
+                    <Form.Label column="sm" sm={3} lg={2} xs={3}>上传间隔</Form.Label>
+                    <Col sm={9} lg={10} xs={9}>
+                        <Form.Control
+                            as="select"
+                            name="autoSyncInterval"
+                            ref={register}
+                            size="sm"
+                        >
+                            <option value="15">15 分钟</option>
+                            <option value="30">30 分钟</option>
+                            <option value="60">1 小时</option>
+                            <option value="360">6 小时</option>
+                            <option value="720">12 小时</option>
+                            <option value="1440">24 小时</option>
+                        </Form.Control>
+                        <Form.Text className="text-muted">
+                            定时上传的时间间隔
+                        </Form.Text>
+                    </Col>
+                </Form.Group>
+
+                <Form.Group as={Row}>
                     <Form.Label column="sm" sm={3} lg={2} xs={3}></Form.Label>
                     <Col sm={9} lg={10} xs={9}>
                         <a href="https://github.com/dudor/BookmarkHub" target="_blank">{browser.i18n.getMessage('help')}</a>

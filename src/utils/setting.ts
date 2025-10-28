@@ -11,6 +11,8 @@ export class SettingBase implements Options {
     enableNotify: boolean = true;
     githubURL: string = 'https://api.github.com';
     enableMultiBrowser: boolean = false; // 是否启用多浏览器模式
+    enableAutoSync: boolean = false; // 是否启用定时上传
+    autoSyncInterval: number = 60; // 定时上传间隔（分钟）
 }
 
 export class Setting extends SettingBase {
@@ -26,6 +28,8 @@ export class Setting extends SettingBase {
         setting.githubToken = options.githubToken;
         setting.enableNotify = options.enableNotify;
         setting.enableMultiBrowser = options.enableMultiBrowser ?? false;
+        setting.enableAutoSync = options.enableAutoSync ?? false;
+        setting.autoSyncInterval = options.autoSyncInterval ?? 60;
 
         // 检测当前浏览器类型
         setting.browserType = await Setting.detectBrowserType();

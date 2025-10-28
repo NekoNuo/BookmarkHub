@@ -5,6 +5,8 @@ import { OperType, BookmarkInfo, SyncDataInfo, RootBookmarksType, BrowserType } 
 import { Bookmarks } from 'wxt/browser'
 export default defineBackground(() => {
 
+  const AUTO_SYNC_ALARM_NAME = 'autoSyncBookmarks';
+
   browser.runtime.onInstalled.addListener(async (c) => {
     // 初始化时保存浏览器类型和配置
     const setting = await Setting.build();
@@ -12,6 +14,9 @@ export default defineBackground(() => {
       currentBrowser: setting.browserType,
       enableMultiBrowser: setting.enableMultiBrowser
     });
+
+    // 初始化定时器
+    await setupAutoSync();
   });
 
   let curOperType = OperType.NONE;
@@ -577,5 +582,63 @@ export default defineBackground(() => {
       }
   }
   */
+
+  // ========== 定时同步功能 ==========
+
+  // 设置定时器
+  async function setupAutoSync() {
+    const setting = await Setting.build();
+    console.log('[setupAutoSync] enableAutoSync:', setting.enableAutoSync, 'interval:', setting.autoSyncInterval);
+
+    // 清除现有的定时器
+    await browser.alarms.clear(AUTO_SYNC_ALARM_NAME);
+
+    if (setting.enableAutoSync) {
+      // 创建新的定时器
+      const intervalInMinutes = Number(setting.autoSyncInterval) || 60;
+      await browser.alarms.create(AUTO_SYNC_ALARM_NAME, {
+        periodInMinutes: intervalInMinutes
+      });
+      console.log(`[setupAutoSync] 定时上传已启用，间隔: ${intervalInMinutes} 分钟`);
+    } else {
+      console.log('[setupAutoSync] 定时上传已禁用');
+    }
+  }
+
+  // 监听定时器触发
+  browser.alarms.onAlarm.addListener(async (alarm) => {
+    if (alarm.name === AUTO_SYNC_ALARM_NAME) {
+      console.log('[alarms.onAlarm] 定时上传触发');
+
+      // 检查是否有操作正在进行
+      if (isOperating) {
+        console.warn('[alarms.onAlarm] 操作正在进行中，跳过本次定时上传');
+        return;
+      }
+
+      try {
+        isOperating = true;
+        curOperType = OperType.SYNC;
+        await uploadBookmarks(false); // 定时上传不去重
+        console.log('[alarms.onAlarm] 定时上传完成');
+      } catch (err) {
+        console.error('[alarms.onAlarm] 定时上传失败:', err);
+      } finally {
+        curOperType = OperType.NONE;
+        isOperating = false;
+      }
+    }
+  });
+
+  // 监听配置变化
+  browser.storage.onChanged.addListener(async (changes, areaName) => {
+    if (areaName === 'sync') {
+      // 检查是否是定时同步相关的配置变化
+      if (changes.enableAutoSync || changes.autoSyncInterval) {
+        console.log('[storage.onChanged] 定时同步配置已更改，重新设置定时器');
+        await setupAutoSync();
+      }
+    }
+  });
 
 });
