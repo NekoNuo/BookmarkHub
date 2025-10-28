@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import ReactDOM from 'react-dom/client';
-import { Dropdown, Badge, Form, Button } from 'react-bootstrap';
 import { IconContext } from 'react-icons'
 import {
     AiOutlineCloudUpload, AiOutlineCloudDownload,
-    AiOutlineCloudSync, AiOutlineSetting, AiOutlineClear,
-    AiOutlineInfoCircle, AiOutlineGithub
+    AiOutlineSetting, AiOutlineClear,
+    AiOutlineInfoCircle, AiOutlineGithub, AiOutlineReload
 } from 'react-icons/ai'
 import 'bootstrap/dist/css/bootstrap.min.css';
+import '../../assets/theme.css';
 import './popup.css'
 
 // 文件信息接口
@@ -18,6 +18,28 @@ interface FileInfo {
     createDate?: number;
     version?: string;
 }
+
+const ToggleRow: React.FC<{
+    id: string;
+    label: string;
+    description?: string;
+    checked: boolean;
+    onChange: (value: boolean) => void;
+}> = ({ id, label, description, checked, onChange }) => (
+    <label htmlFor={id} className="toggle-row">
+        <input
+            id={id}
+            type="checkbox"
+            checked={checked}
+            onChange={(e) => onChange(e.target.checked)}
+        />
+        <span className="toggle-row__indicator" />
+        <span className="toggle-row__content">
+            <span className="toggle-row__label">{label}</span>
+            {description && <span className="toggle-row__description">{description}</span>}
+        </span>
+    </label>
+);
 
 const Popup: React.FC = () => {
     const [count, setCount] = useState({ local: "0", remote: "0" })
@@ -98,17 +120,13 @@ const Popup: React.FC = () => {
         }
     }
 
-    useEffect(() => {
-        // 保留设置按钮的原有处理方式
-        const handleClick = (e: MouseEvent) => {
-            let elem = e.target as HTMLInputElement;
-            if (elem != null && elem.className === 'dropdown-item' && elem.name === 'setting') {
-                browser.runtime.sendMessage({ name: 'setting' });
-            }
-        };
-        document.addEventListener('click', handleClick);
-        return () => document.removeEventListener('click', handleClick);
-    }, [])
+    const openOptions = async () => {
+        try {
+            await browser.runtime.sendMessage({ name: 'setting' });
+        } catch (err) {
+            console.error('openOptions error', err);
+        }
+    }
 
     const loadCounts = async () => {
         let data = await browser.storage.local.get([
@@ -153,179 +171,176 @@ const Popup: React.FC = () => {
         loadAvailableFiles();
     }, [])
     return (
-        <IconContext.Provider value={{ className: 'dropdown-item-icon' }}>
-            <Dropdown.Menu show>
-                {statusMessage.text && (
-                    <>
-                        <Dropdown.ItemText>
-                            <div style={{
-                                padding: '0.5rem',
-                                borderRadius: '0.25rem',
-                                backgroundColor: statusMessage.type === 'success' ? '#d4edda' : '#f8d7da',
-                                color: statusMessage.type === 'success' ? '#155724' : '#721c24',
-                                border: `1px solid ${statusMessage.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`,
-                                fontSize: '0.9em',
-                                textAlign: 'center'
-                            }}>
-                                {statusMessage.text}
+        <IconContext.Provider value={{ className: 'icon-default', size: '1.1rem' }}>
+            <div className="popup-wrapper">
+                <div className="popup-card surface-card">
+                    <header className="popup-header">
+                        <div>
+                            <span className="pill pill--accent">BookmarkHub</span>
+                            <h1>书签同步中心</h1>
+                            <p className="popup-header__subtitle">
+                                快速同步、备份并保持浏览器书签整洁。
+                            </p>
+                        </div>
+                        <div className="count-stack">
+                            <div className="count-chip">
+                                <span>Local</span>
+                                <strong>{count["local"]}</strong>
                             </div>
-                        </Dropdown.ItemText>
-                        <Dropdown.Divider />
-                    </>
-                )}
-
-                <Dropdown.ItemText style={{
-                    backgroundColor: '#f8f9fa',
-                    padding: '0.75rem',
-                    borderRadius: '0.25rem',
-                    marginBottom: '0.5rem'
-                }}>
-                    <div style={{ marginBottom: '0.5rem' }}>
-                        <strong style={{ fontSize: '0.9em', color: '#495057' }}>
-                            📤 上传配置
-                        </strong>
-                    </div>
-                    <Form.Check
-                        type="checkbox"
-                        id="deduplicateOnUpload"
-                        label="去重（删除重复书签）"
-                        checked={deduplicateOnUpload}
-                        onChange={(e) => setDeduplicateOnUpload(e.target.checked)}
-                        style={{ fontSize: '0.85em' }}
-                    />
-                </Dropdown.ItemText>
-
-                <Dropdown.Item
-                    as="button"
-                    title={browser.i18n.getMessage('uploadBookmarksDesc')}
-                    onClick={() => handleOperation('upload', '上传')}
-                >
-                    <AiOutlineCloudUpload />{browser.i18n.getMessage('uploadBookmarks')}
-                    {enableMultiBrowser && <Badge variant="info" className="ml-2">{currentBrowser}</Badge>}
-                    {deduplicateOnUpload && <Badge variant="warning" className="ml-2" style={{ fontSize: '0.7em' }}>去重</Badge>}
-                </Dropdown.Item>
-
-                <Dropdown.Divider />
-
-                <Dropdown.ItemText style={{
-                    backgroundColor: '#f8f9fa',
-                    padding: '0.75rem',
-                    borderRadius: '0.25rem',
-                    marginBottom: '0.5rem'
-                }}>
-                    <div style={{ marginBottom: '0.5rem' }}>
-                        <strong style={{ fontSize: '0.9em', color: '#495057' }}>
-                            📥 下载配置
-                        </strong>
-                    </div>
-
-                    {showFileSelector && (
-                        <Form.Group style={{ marginBottom: '0.5rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                                <Form.Label style={{ fontSize: '0.85em', marginBottom: 0, color: '#6c757d' }}>
-                                    选择配置文件:
-                                </Form.Label>
-                                <Button
-                                    variant="link"
-                                    size="sm"
-                                    onClick={loadAvailableFiles}
-                                    style={{
-                                        padding: '0 0.25rem',
-                                        fontSize: '0.75em',
-                                        textDecoration: 'none',
-                                        color: '#007bff'
-                                    }}
-                                    title="刷新配置列表"
-                                >
-                                    🔄 刷新
-                                </Button>
+                            <div className="count-chip count-chip--remote">
+                                <span>Remote</span>
+                                <strong>{count["remote"]}</strong>
                             </div>
-                            <Form.Control
-                                as="select"
-                                size="sm"
-                                value={selectedFile}
-                                onChange={(e) => setSelectedFile(e.target.value)}
-                            >
-                                <option value="">📱 当前浏览器配置</option>
-                                {availableFiles.map(file => (
-                                    <option key={file.fileName} value={file.fileName}>
-                                        📄 {file.fileName}
-                                        {file.bookmarkCount > 0 ? ` (${file.bookmarkCount} 个书签)` : ' (空文件或无效格式)'}
-                                        {file.browserType && ` - ${file.browserType}`}
-                                    </option>
-                                ))}
-                            </Form.Control>
-                        </Form.Group>
+                        </div>
+                    </header>
+
+                    {statusMessage.text && (
+                        <div className={`status-banner status-banner--${statusMessage.type}`}>
+                            {statusMessage.text}
+                        </div>
                     )}
 
-                    <div style={{
-                        borderTop: showFileSelector ? '1px solid #dee2e6' : 'none',
-                        paddingTop: showFileSelector ? '0.5rem' : '0'
-                    }}>
-                        <Form.Check
-                            type="checkbox"
-                            id="clearBeforeDownload"
-                            label="清空现有书签（替换模式）"
+                    <section className="popup-section">
+                        <div className="section-heading">
+                            <h2>上传配置</h2>
+                            <p>将当前浏览器书签推送到 Gist，可选择去重清理重复链接。</p>
+                        </div>
+                        <ToggleRow
+                            id="toggle-upload-dedupe"
+                            label="上传时去除重复书签"
+                            description="仅保留每个网址的第一条记录"
+                            checked={deduplicateOnUpload}
+                            onChange={setDeduplicateOnUpload}
+                        />
+                        <button
+                            className="action-button action-button--primary"
+                            title={browser.i18n.getMessage('uploadBookmarksDesc')}
+                            onClick={() => handleOperation('upload', '上传')}
+                        >
+                            <AiOutlineCloudUpload />
+                            <div>
+                                <span>{browser.i18n.getMessage('uploadBookmarks')}</span>
+                                {enableMultiBrowser && (
+                                    <small>当前浏览器：{currentBrowser}</small>
+                                )}
+                            </div>
+                        </button>
+                    </section>
+
+                    <section className="popup-section">
+                        <div className="section-heading">
+                            <h2>下载配置</h2>
+                            <p>从云端拉取书签，可选择目标配置文件与同步策略。</p>
+                        </div>
+
+                        {showFileSelector && (
+                            <div className="file-selector">
+                                <label htmlFor="fileSelect">选择配置文件</label>
+                                <div className="file-selector__controls">
+                                    <select
+                                        id="fileSelect"
+                                        value={selectedFile}
+                                        onChange={(e) => setSelectedFile(e.target.value)}
+                                    >
+                                        <option value="">当前浏览器配置</option>
+                                        {availableFiles.map(file => (
+                                            <option key={file.fileName} value={file.fileName}>
+                                                {file.fileName}
+                                                {file.bookmarkCount > 0 ? ` · ${file.bookmarkCount} 条` : ' · 空文件'}
+                                                {file.browserType ? ` · ${file.browserType}` : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        className="ghost-button"
+                                        type="button"
+                                        title="刷新配置列表"
+                                        onClick={loadAvailableFiles}
+                                    >
+                                        <AiOutlineReload /> 刷新
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        <ToggleRow
+                            id="toggle-clear-before-download"
+                            label="下载前清空本地书签"
+                            description="适合替换整套书签，慎用"
                             checked={clearBeforeDownload}
-                            onChange={(e) => setClearBeforeDownload(e.target.checked)}
-                            style={{ fontSize: '0.85em', marginBottom: '0.25rem' }}
+                            onChange={setClearBeforeDownload}
                         />
-                        <Form.Check
-                            type="checkbox"
-                            id="deduplicateOnDownload"
-                            label="去重（删除重复书签）"
+                        <ToggleRow
+                            id="toggle-download-dedupe"
+                            label="下载后去除重复书签"
+                            description="避免重复书签混入本地"
                             checked={deduplicateOnDownload}
-                            onChange={(e) => setDeduplicateOnDownload(e.target.checked)}
-                            style={{ fontSize: '0.85em' }}
+                            onChange={setDeduplicateOnDownload}
                         />
-                    </div>
-                </Dropdown.ItemText>
 
-                <Dropdown.Item
-                    as="button"
-                    title={browser.i18n.getMessage('downloadBookmarksDesc')}
-                    onClick={() => handleOperation('download', '下载')}
-                >
-                    <AiOutlineCloudDownload />{browser.i18n.getMessage('downloadBookmarks')}
-                    {selectedFile && <Badge variant="success" className="ml-2" style={{ fontSize: '0.7em' }}>
-                        {selectedFile}
-                    </Badge>}
-                    {deduplicateOnDownload && <Badge variant="warning" className="ml-2" style={{ fontSize: '0.7em' }}>去重</Badge>}
-                </Dropdown.Item>
-                <Dropdown.Item
-                    as="button"
-                    title={browser.i18n.getMessage('removeAllBookmarksDesc')}
-                    onClick={() => handleOperation('removeAll', '清空')}
-                >
-                    <AiOutlineClear />{browser.i18n.getMessage('removeAllBookmarks')}
-                </Dropdown.Item>
-                <Dropdown.Divider />
+                        <button
+                            className="action-button"
+                            title={browser.i18n.getMessage('downloadBookmarksDesc')}
+                            onClick={() => handleOperation('download', '下载')}
+                        >
+                            <AiOutlineCloudDownload />
+                            <div>
+                                <span>{browser.i18n.getMessage('downloadBookmarks')}</span>
+                                {selectedFile && <small>目标文件：{selectedFile}</small>}
+                            </div>
+                        </button>
+                    </section>
 
-                {enableMultiBrowser && (
-                    <>
-                        <Dropdown.ItemText>
-                            <small><strong>多浏览器书签数量:</strong></small>
-                        </Dropdown.ItemText>
-                        <Dropdown.ItemText style={{ fontSize: '0.85em', paddingLeft: '10px' }}>
-                            <Badge variant="primary">Chrome: {browserCounts.chrome}</Badge>{' '}
-                            <Badge variant="warning">Firefox: {browserCounts.firefox}</Badge>{' '}
-                            <Badge variant="info">Edge: {browserCounts.edge}</Badge>{' '}
-                            <Badge variant="secondary">Safari: {browserCounts.safari}</Badge>
-                        </Dropdown.ItemText>
-                        <Dropdown.Divider />
-                    </>
-                )}
+                    <section className="popup-section popup-section--compact">
+                        <div className="section-heading">
+                            <h2>其他操作</h2>
+                        </div>
+                        <div className="secondary-actions">
+                            <button
+                                className="danger-button"
+                                title={browser.i18n.getMessage('removeAllBookmarksDesc')}
+                                onClick={() => handleOperation('removeAll', '清空')}
+                            >
+                                <AiOutlineClear />
+                                <span>{browser.i18n.getMessage('removeAllBookmarks')}</span>
+                            </button>
+                            <button className="ghost-button" onClick={openOptions}>
+                                <AiOutlineSetting />
+                                <span>{browser.i18n.getMessage('settings')}</span>
+                            </button>
+                        </div>
+                    </section>
 
-                <Dropdown.Item name='setting' as="button">
-                    <AiOutlineSetting />{browser.i18n.getMessage('settings')}
-                </Dropdown.Item>
-                <Dropdown.ItemText>
-                    <AiOutlineInfoCircle /><a href="https://github.com/dudor/BookmarkHub" target="_blank">{browser.i18n.getMessage('help')}</a>|
-                    <Badge id="localCount" variant="light" title={browser.i18n.getMessage('localCount')}>{count["local"]}</Badge>/
-                    <Badge id="remoteCount" variant="light" title={browser.i18n.getMessage('remoteCount')}>{count["remote"]}</Badge>|
-                    <a href="https://github.com/dudor" target="_blank" title={browser.i18n.getMessage('author')}><AiOutlineGithub /></a>
-                </Dropdown.ItemText>
-            </Dropdown.Menu >
+                    {enableMultiBrowser && (
+                        <section className="popup-section popup-section--compact">
+                            <div className="section-heading">
+                                <h2>多浏览器统计</h2>
+                                <p>查看不同浏览器的书签数量分布。</p>
+                            </div>
+                            <div className="browser-counts">
+                                <div className="count-chip count-chip--chromium">Chrome <strong>{browserCounts.chrome}</strong></div>
+                                <div className="count-chip count-chip--firefox">Firefox <strong>{browserCounts.firefox}</strong></div>
+                                <div className="count-chip count-chip--edge">Edge <strong>{browserCounts.edge}</strong></div>
+                                <div className="count-chip count-chip--safari">Safari <strong>{browserCounts.safari}</strong></div>
+                            </div>
+                        </section>
+                    )}
+
+                    <footer className="popup-footer">
+                        <div className="footer-links">
+                            <AiOutlineInfoCircle />
+                            <a href="https://github.com/dudor/BookmarkHub" target="_blank" rel="noreferrer">
+                                {browser.i18n.getMessage('help')}
+                            </a>
+                            <span className="dot-separator">•</span>
+                            <a href="https://github.com/dudor" target="_blank" rel="noreferrer">
+                                <AiOutlineGithub />
+                            </a>
+                        </div>
+                        <div className="footer-hint">保持网络畅通即可完成同步</div>
+                    </footer>
+                </div>
+            </div>
         </IconContext.Provider>
     )
 }
@@ -336,5 +351,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <Popup />
     </React.StrictMode>,
 );
-
 
