@@ -174,17 +174,25 @@ const Popup: React.FC = () => {
                     </>
                 )}
 
-                <Dropdown.ItemText>
-                    <Form.Group style={{ marginBottom: '0.5rem' }}>
-                        <Form.Check
-                            type="checkbox"
-                            id="deduplicateOnUpload"
-                            label="上传时去重（默认不去重）"
-                            checked={deduplicateOnUpload}
-                            onChange={(e) => setDeduplicateOnUpload(e.target.checked)}
-                            style={{ fontSize: '0.85em' }}
-                        />
-                    </Form.Group>
+                <Dropdown.ItemText style={{
+                    backgroundColor: '#f8f9fa',
+                    padding: '0.75rem',
+                    borderRadius: '0.25rem',
+                    marginBottom: '0.5rem'
+                }}>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                        <strong style={{ fontSize: '0.9em', color: '#495057' }}>
+                            📤 上传配置
+                        </strong>
+                    </div>
+                    <Form.Check
+                        type="checkbox"
+                        id="deduplicateOnUpload"
+                        label="去重（删除重复书签）"
+                        checked={deduplicateOnUpload}
+                        onChange={(e) => setDeduplicateOnUpload(e.target.checked)}
+                        style={{ fontSize: '0.85em' }}
+                    />
                 </Dropdown.ItemText>
 
                 <Dropdown.Item
@@ -197,35 +205,50 @@ const Popup: React.FC = () => {
                     {deduplicateOnUpload && <Badge variant="warning" className="ml-2" style={{ fontSize: '0.7em' }}>去重</Badge>}
                 </Dropdown.Item>
 
-                <Dropdown.ItemText>
-                    <Form.Group style={{ marginBottom: '0.5rem' }}>
-                        {showFileSelector && (
-                            <>
-                                <Form.Label style={{ fontSize: '0.85em', marginBottom: '0.25rem' }}>
-                                    <strong>选择要下载的配置:</strong>
-                                </Form.Label>
-                                <Form.Control
-                                    as="select"
-                                    size="sm"
-                                    value={selectedFile}
-                                    onChange={(e) => setSelectedFile(e.target.value)}
-                                    style={{ marginBottom: '0.5rem' }}
-                                >
-                                    <option value="">当前浏览器配置</option>
-                                    {availableFiles.map(file => (
-                                        <option key={file.fileName} value={file.fileName}>
-                                            {file.fileName} ({file.bookmarkCount} 个书签)
-                                            {file.browserType && ` - ${file.browserType}`}
-                                        </option>
-                                    ))}
-                                </Form.Control>
-                            </>
-                        )}
+                <Dropdown.Divider />
 
+                <Dropdown.ItemText style={{
+                    backgroundColor: '#f8f9fa',
+                    padding: '0.75rem',
+                    borderRadius: '0.25rem',
+                    marginBottom: '0.5rem'
+                }}>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                        <strong style={{ fontSize: '0.9em', color: '#495057' }}>
+                            📥 下载配置
+                        </strong>
+                    </div>
+
+                    {showFileSelector && (
+                        <Form.Group style={{ marginBottom: '0.5rem' }}>
+                            <Form.Label style={{ fontSize: '0.85em', marginBottom: '0.25rem', color: '#6c757d' }}>
+                                选择配置文件:
+                            </Form.Label>
+                            <Form.Control
+                                as="select"
+                                size="sm"
+                                value={selectedFile}
+                                onChange={(e) => setSelectedFile(e.target.value)}
+                            >
+                                <option value="">📱 当前浏览器配置</option>
+                                {availableFiles.map(file => (
+                                    <option key={file.fileName} value={file.fileName}>
+                                        📄 {file.fileName} ({file.bookmarkCount} 个书签)
+                                        {file.browserType && ` - ${file.browserType}`}
+                                    </option>
+                                ))}
+                            </Form.Control>
+                        </Form.Group>
+                    )}
+
+                    <div style={{
+                        borderTop: showFileSelector ? '1px solid #dee2e6' : 'none',
+                        paddingTop: showFileSelector ? '0.5rem' : '0'
+                    }}>
                         <Form.Check
                             type="checkbox"
                             id="clearBeforeDownload"
-                            label="下载前清空现有书签（默认合并）"
+                            label="清空现有书签（替换模式）"
                             checked={clearBeforeDownload}
                             onChange={(e) => setClearBeforeDownload(e.target.checked)}
                             style={{ fontSize: '0.85em', marginBottom: '0.25rem' }}
@@ -233,12 +256,12 @@ const Popup: React.FC = () => {
                         <Form.Check
                             type="checkbox"
                             id="deduplicateOnDownload"
-                            label="下载时去重（默认不去重）"
+                            label="去重（删除重复书签）"
                             checked={deduplicateOnDownload}
                             onChange={(e) => setDeduplicateOnDownload(e.target.checked)}
                             style={{ fontSize: '0.85em' }}
                         />
-                    </Form.Group>
+                    </div>
                 </Dropdown.ItemText>
 
                 <Dropdown.Item
