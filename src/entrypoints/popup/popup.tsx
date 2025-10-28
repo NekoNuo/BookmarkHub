@@ -69,8 +69,31 @@ const Popup: React.FC = () => {
 
         // 如果是下载操作
         if (operationName === 'download') {
-            // 传递选中的文件名
+            // 如果显示了文件选择器但没有选择文件，提示用户
+            if (showFileSelector && !selectedFile) {
+                setStatusMessage({
+                    text: '请先选择要下载的配置文件',
+                    type: 'error'
+                });
+                setTimeout(() => {
+                    setStatusMessage({ text: '', type: '' });
+                }, 3000);
+                return; // 终止操作
+            }
+
+            // 如果选择了文件，检查该文件是否有书签
             if (selectedFile) {
+                const selectedFileInfo = availableFiles.find(f => f.fileName === selectedFile);
+                if (selectedFileInfo && selectedFileInfo.bookmarkCount === 0) {
+                    setStatusMessage({
+                        text: `配置文件 "${selectedFile}" 中没有书签`,
+                        type: 'error'
+                    });
+                    setTimeout(() => {
+                        setStatusMessage({ text: '', type: '' });
+                    }, 3000);
+                    return; // 终止操作
+                }
                 message.fileName = selectedFile;
                 console.log('[handleOperation] 下载文件:', selectedFile);
             }
