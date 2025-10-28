@@ -60,7 +60,10 @@
   font-size: 0.7rem;
   color: var(--color-text-muted);
   min-width: 66px;
+  max-width: 150px;
   border: 1px solid transparent;
+  word-break: break-word;
+  text-align: center;
 }
 
 .count-chip strong {
@@ -87,6 +90,10 @@
 
 .count-chip--safari {
   border-color: rgba(16, 185, 129, 0.3);
+}
+
+.count-chip--default {
+  border-color: rgba(156, 163, 175, 0.3);
 }
 
 .status-banner {

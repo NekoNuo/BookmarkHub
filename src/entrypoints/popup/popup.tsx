@@ -162,30 +162,19 @@ const Popup: React.FC = () => {
             "remoteCount",
             "enableMultiBrowser",
             "currentBrowser",
-            "remoteCount_chrome",
-            "remoteCount_firefox",
-            "remoteCount_edge",
-            "remoteCount_safari",
             "lastSelectedFile" // 加载上次选择的文件
         ]);
         setCount({ local: data["localCount"] || "0", remote: data["remoteCount"] || "0" });
         setEnableMultiBrowser(data["enableMultiBrowser"] || false);
         setCurrentBrowser(data["currentBrowser"] || "unknown");
 
-        // 加载各浏览器的书签数量
-        const counts: Record<string, string> = {
-            chrome: data["remoteCount_chrome"] || "0",
-            firefox: data["remoteCount_firefox"] || "0",
-            edge: data["remoteCount_edge"] || "0",
-            safari: data["remoteCount_safari"] || "0"
-        };
-        setBrowserCounts(counts);
-
         // 恢复上次选择的文件
         if (data["lastSelectedFile"]) {
             setSelectedFile(data["lastSelectedFile"]);
             console.log('[loadCounts] 恢复上次选择的文件:', data["lastSelectedFile"]);
         }
+
+        // 注意：browserCounts 将由 loadAvailableFiles 更新，不再从 storage 读取
     }
 
     const loadAvailableFiles = async () => {
@@ -194,6 +183,31 @@ const Popup: React.FC = () => {
             console.log('可用文件列表:', files);
             setAvailableFiles(files || []);
             setShowFileSelector(files && files.length > 1); // 只有多个文件时才显示选择器
+
+            // 更新多浏览器统计数据
+            if (files && files.length > 0) {
+                const counts: Record<string, string> = {};
+                files.forEach((file: FileInfo) => {
+                    // 根据文件名或 browserType 更新对应浏览器的书签数量
+                    if (file.browserType) {
+                        counts[file.browserType] = file.bookmarkCount.toString();
+                    } else {
+                        // 如果没有 browserType，尝试从文件名推断
+                        const fileName = file.fileName.toLowerCase();
+                        if (fileName.includes('chrome')) {
+                            counts['chrome'] = file.bookmarkCount.toString();
+                        } else if (fileName.includes('firefox')) {
+                            counts['firefox'] = file.bookmarkCount.toString();
+                        } else if (fileName.includes('edge')) {
+                            counts['edge'] = file.bookmarkCount.toString();
+                        } else if (fileName.includes('safari')) {
+                            counts['safari'] = file.bookmarkCount.toString();
+                        }
+                    }
+                });
+                setBrowserCounts(counts);
+                console.log('更新多浏览器统计:', counts);
+            }
         } catch (err) {
             console.error('获取文件列表失败:', err);
             setAvailableFiles([]);
@@ -363,17 +377,41 @@ const Popup: React.FC = () => {
                         </div>
                     </section>
 
-                    {enableMultiBrowser && (
+                    {availableFiles.length > 0 && (
                         <section className="popup-section popup-section--compact">
                             <div className="section-heading">
-                                <h2>多浏览器统计</h2>
-                                <p>查看不同浏览器的书签数量分布。</p>
+                                <h2>远程配置统计</h2>
+                                <p>查看所有远程配置文件的书签数量。</p>
                             </div>
                             <div className="browser-counts">
-                                <div className="count-chip count-chip--chromium">Chrome <strong>{browserCounts.chrome}</strong></div>
-                                <div className="count-chip count-chip--firefox">Firefox <strong>{browserCounts.firefox}</strong></div>
-                                <div className="count-chip count-chip--edge">Edge <strong>{browserCounts.edge}</strong></div>
-                                <div className="count-chip count-chip--safari">Safari <strong>{browserCounts.safari}</strong></div>
+                                {availableFiles.map(file => {
+                                    // 根据 browserType 或文件名确定样式类
+                                    let chipClass = 'count-chip';
+                                    const browserType = file.browserType || '';
+                                    const fileName = file.fileName.toLowerCase();
+
+                                    if (browserType === 'chrome' || fileName.includes('chrome')) {
+                                        chipClass += ' count-chip--chromium';
+                                    } else if (browserType === 'firefox' || fileName.includes('firefox')) {
+                                        chipClass += ' count-chip--firefox';
+                                    } else if (browserType === 'edge' || fileName.includes('edge')) {
+                                        chipClass += ' count-chip--edge';
+                                    } else if (browserType === 'safari' || fileName.includes('safari')) {
+                                        chipClass += ' count-chip--safari';
+                                    } else {
+                                        chipClass += ' count-chip--default';
+                                    }
+
+                                    // 显示文件名（去除 .json 后缀）
+                                    const displayName = file.fileName.replace(/\.json$/, '');
+
+                                    return (
+                                        <div key={file.fileName} className={chipClass} title={file.fileName}>
+                                            {displayName}
+                                            <strong>{file.bookmarkCount}</strong>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </section>
                     )}
