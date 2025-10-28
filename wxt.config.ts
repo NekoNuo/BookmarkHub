@@ -13,6 +13,10 @@ export default defineConfig({
     host_permissions: ["https://*.github.com/", "https://*.githubusercontent.com/"],
     optional_host_permissions: [
       "*://*/*",
-    ]
+    ],
+    options_ui: {
+      page: 'options/index.html',
+      open_in_tab: true
+    }
   }
 });

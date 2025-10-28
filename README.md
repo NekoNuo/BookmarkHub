@@ -79,6 +79,17 @@ It uses GitHub's Gist records to store browser bookmarks for safe and secure use
 - [ ] Import and Export
 - [ ] Share bookmarks
 
+## Development & Packaging
+
+To run the project locally you can use the standard WXT scripts:
+
+```bash
+npm install
+npm run dev
+```
+
+When you are ready to publish, follow the step-by-step packaging guide in [`docs/packaging.md`](docs/packaging.md). It covers building bundles for Chromium- and Firefox-based browsers, verifying build outputs, and preparing upload archives.
+
 <!-- LICENSE -->
 ## License
 
@@ -92,6 +103,5 @@ See `LICENSE` for more information.
 dudor
 
 Project Link: [https://github.com/dudor/BookmarkHub](https://github.com/dudor/BookmarkHub)
-
 
 

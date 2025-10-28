@@ -122,9 +122,17 @@ const Popup: React.FC = () => {
 
     const openOptions = async () => {
         try {
-            await browser.runtime.sendMessage({ name: 'setting' });
-        } catch (err) {
-            console.error('openOptions error', err);
+            await browser.runtime.openOptionsPage();
+            return;
+        } catch (primaryErr) {
+            console.warn('openOptionsPage not available, fallback to window.open', primaryErr);
+        }
+
+        const optionsUrl = browser.runtime.getURL('options/index.html');
+        const opened = window.open(optionsUrl, '_blank', 'noopener,noreferrer');
+
+        if (!opened) {
+            console.error('Failed to open options page via window.open');
         }
     }
 
