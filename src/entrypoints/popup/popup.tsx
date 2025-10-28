@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import ReactDOM from 'react-dom/client';
-import { Dropdown, Badge, Form } from 'react-bootstrap';
+import { Dropdown, Badge, Form, Button } from 'react-bootstrap';
 import { IconContext } from 'react-icons'
 import {
     AiOutlineCloudUpload, AiOutlineCloudDownload,
@@ -221,9 +221,25 @@ const Popup: React.FC = () => {
 
                     {showFileSelector && (
                         <Form.Group style={{ marginBottom: '0.5rem' }}>
-                            <Form.Label style={{ fontSize: '0.85em', marginBottom: '0.25rem', color: '#6c757d' }}>
-                                选择配置文件:
-                            </Form.Label>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                                <Form.Label style={{ fontSize: '0.85em', marginBottom: 0, color: '#6c757d' }}>
+                                    选择配置文件:
+                                </Form.Label>
+                                <Button
+                                    variant="link"
+                                    size="sm"
+                                    onClick={loadAvailableFiles}
+                                    style={{
+                                        padding: '0 0.25rem',
+                                        fontSize: '0.75em',
+                                        textDecoration: 'none',
+                                        color: '#007bff'
+                                    }}
+                                    title="刷新配置列表"
+                                >
+                                    🔄 刷新
+                                </Button>
+                            </div>
                             <Form.Control
                                 as="select"
                                 size="sm"
