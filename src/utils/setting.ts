@@ -11,6 +11,8 @@ export class SettingBase implements Options {
     enableNotify: boolean = true;
     githubURL: string = 'https://api.github.com';
     enableMultiBrowser: boolean = false; // 是否启用多浏览器模式
+    useCustomFileName: boolean = false; // 多浏览器模式下是否使用自定义文件名
+    customFileName: string = ''; // 自定义文件名
     enableAutoSync: boolean = false; // 是否启用定时上传
     autoSyncInterval: number = 60; // 定时上传间隔（分钟）
 }
@@ -28,15 +30,23 @@ export class Setting extends SettingBase {
         setting.githubToken = options.githubToken;
         setting.enableNotify = options.enableNotify;
         setting.enableMultiBrowser = options.enableMultiBrowser ?? false;
+        setting.useCustomFileName = options.useCustomFileName ?? false;
+        setting.customFileName = options.customFileName ?? '';
         setting.enableAutoSync = options.enableAutoSync ?? false;
         setting.autoSyncInterval = options.autoSyncInterval ?? 60;
 
         // 检测当前浏览器类型
         setting.browserType = await Setting.detectBrowserType();
 
-        // 如果启用多浏览器模式，使用对应的文件名
+        // 如果启用多浏览器模式，决定使用哪个文件名
         if (setting.enableMultiBrowser) {
-            setting.gistFileName = BROWSER_FILE_NAMES[setting.browserType];
+            if (setting.useCustomFileName && setting.customFileName) {
+                // 使用自定义文件名
+                setting.gistFileName = setting.customFileName;
+            } else {
+                // 使用自动命名（浏览器类型）
+                setting.gistFileName = BROWSER_FILE_NAMES[setting.browserType];
+            }
         }
 
         return setting;

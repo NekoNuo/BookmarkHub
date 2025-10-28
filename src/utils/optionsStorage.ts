@@ -9,6 +9,8 @@ export default new OptionsSync({
         enableNotify: true,
         githubURL: 'https://api.github.com',
         enableMultiBrowser: false, // 是否启用多浏览器模式
+        useCustomFileName: false, // 多浏览器模式下是否使用自定义文件名
+        customFileName: '', // 自定义文件名
         enableAutoSync: false, // 是否启用定时上传
         autoSyncInterval: 60, // 定时上传间隔（分钟），默认60分钟
     },

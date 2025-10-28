@@ -66,6 +66,37 @@ const Popup: React.FC = () => {
                 </Form.Group>
 
                 <Form.Group as={Row}>
+                    <Form.Label column="sm" sm={3} lg={2} xs={3}>使用自定义文件名</Form.Label>
+                    <Col sm={9} lg={10} xs={9}>
+                        <Form.Check
+                            id="useCustomFileName"
+                            name="useCustomFileName"
+                            ref={register}
+                            type="switch"
+                        />
+                        <Form.Text className="text-muted">
+                            启用后，多浏览器模式下将使用下方自定义的文件名，而不是自动命名
+                        </Form.Text>
+                    </Col>
+                </Form.Group>
+
+                <Form.Group as={Row}>
+                    <Form.Label column="sm" sm={3} lg={2} xs={3}>自定义文件名</Form.Label>
+                    <Col sm={9} lg={10} xs={9}>
+                        <Form.Control
+                            name="customFileName"
+                            ref={register}
+                            type="text"
+                            placeholder="例如: work, home, personal"
+                            size="sm"
+                        />
+                        <Form.Text className="text-muted">
+                            多浏览器模式下，如果启用"使用自定义文件名"，将使用此名称
+                        </Form.Text>
+                    </Col>
+                </Form.Group>
+
+                <Form.Group as={Row}>
                     <Form.Label column="sm" sm={3} lg={2} xs={3}>启用定时上传</Form.Label>
                     <Col sm={9} lg={10} xs={9}>
                         <Form.Check
