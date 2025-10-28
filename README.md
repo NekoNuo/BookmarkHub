@@ -39,7 +39,7 @@ BookmarkHub is a browser plug-in that can synchronize your bookmarks between dif
 
 For major browsers such as Chrome, Firefox, Microsoft Edge, and more.
 
-It uses GitHub's Gist records to store browser bookmarks for safe and secure use.
+It uses GitHub's Gist records to store browser bookmarks for safe and secure use. The refreshed control panel helps you keep local and remote bookmark collections tidy with smarter upload/download options and quick health checks.
 
 ![BookmarkHub](images/3.gif)
 
@@ -47,12 +47,18 @@ It uses GitHub's Gist records to store browser bookmarks for safe and secure use
 
 ![BookmarkHub](images/2.png)
 
+![BookmarkHub](images/4.png)
+
+![BookmarkHub](images/5.png)
+
 ## Features
 * No registration required, just use the Token and Gist of your GitHub account
-* Easy to upload and download bookmarks with one click
-* Clear all local bookmarks with one click
+* Easy to upload and download bookmarks with one click, with optional duplicate cleanup during sync
+* Clear all local bookmarks with one click, or purge before pulling remote data when you need a full reset
 * Support cross-machine and cross-browser synchronization of bookmarks
 * Support to display the number of local and remote bookmarks
+* Quickly compare bookmark counts across every remote gist configuration to spot out-of-sync files
+* Flexible strategy selection when downloading so you can choose the target browser profile before syncing
 
 
 ## Installation
@@ -68,7 +74,8 @@ It uses GitHub's Gist records to store browser bookmarks for safe and secure use
 1. [Login](https://github.com/login) GitHub，If you don't have an account, please [click here to register](https://github.com/join)。
 2. [Create a token that manages the gist](https://github.com/settings/tokens/new)。
 3. [Create a secret gist](https://gist.github.com)。__Note: If it's a public gist, your bookmarks can be searched by others。__
-4. Download BookmarkHub in the browser store, click the plug-in's settings button, fill in the token and gist ID in the pop-up settings window, and you can upload the download bookmark。
+4. Download BookmarkHub in the browser store, click the plug-in's settings button, fill in the token and gist ID in the pop-up settings window, and choose the sync strategy that fits your workflow (e.g., deduplicate on upload/download, clear local before pulling remote).
+5. Use the dashboard controls to upload, download, compare, or clear bookmarks; the remote configuration statistics section helps verify every gist is aligned.
 
 <!-- ROADMAP -->
 ## Roadmap
@@ -103,5 +110,4 @@ See `LICENSE` for more information.
 dudor
 
 Project Link: [https://github.com/dudor/BookmarkHub](https://github.com/dudor/BookmarkHub)
-
 
