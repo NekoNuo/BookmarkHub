@@ -213,7 +213,7 @@ const Popup: React.FC = () => {
                             onChange={setDeduplicateOnUpload}
                         />
                         <button
-                            className="action-button action-button--primary"
+                            className="action-button"
                             title={browser.i18n.getMessage('uploadBookmarksDesc')}
                             onClick={() => handleOperation('upload', '上传')}
                         >
@@ -351,4 +351,3 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <Popup />
     </React.StrictMode>,
 );
-

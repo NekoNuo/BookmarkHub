@@ -24,14 +24,6 @@
   overflow: hidden;
 }
 
-.popup-card::before {
-  content: "";
-  position: absolute;
-  inset: -30% 40% 40% -30%;
-  background: radial-gradient(ellipse at top, rgba(79, 70, 229, 0.16), transparent 65%);
-  pointer-events: none;
-}
-
 .popup-header {
   display: flex;
   justify-content: space-between;
@@ -166,22 +158,9 @@
   color: var(--color-text-muted);
 }
 
-.action-button--primary {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
-  color: #ffffff;
-}
-
-.action-button--primary small {
-  color: rgba(255, 255, 255, 0.75);
-}
-
 .action-button:hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(79, 70, 229, 0.16);
-}
-
-.action-button--primary:hover {
-  box-shadow: 0 10px 24px rgba(79, 70, 229, 0.28);
 }
 
 .danger-button {
