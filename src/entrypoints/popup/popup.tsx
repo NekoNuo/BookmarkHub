@@ -121,18 +121,14 @@ const Popup: React.FC = () => {
     }
 
     const openOptions = async () => {
+        // 直接使用 chrome.tabs.create 打开独立的设置页面
+        const optionsUrl = browser.runtime.getURL('/options.html');
         try {
-            await browser.runtime.openOptionsPage();
-            return;
-        } catch (primaryErr) {
-            console.warn('openOptionsPage not available, fallback to window.open', primaryErr);
-        }
-
-        const optionsUrl = browser.runtime.getURL('options/index.html');
-        const opened = window.open(optionsUrl, '_blank', 'noopener,noreferrer');
-
-        if (!opened) {
-            console.error('Failed to open options page via window.open');
+            await browser.tabs.create({ url: optionsUrl });
+        } catch (err) {
+            console.error('Failed to open options page:', err);
+            // 降级方案：使用 window.open
+            window.open(optionsUrl, '_blank', 'noopener,noreferrer');
         }
     }
 
